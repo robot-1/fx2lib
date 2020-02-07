@@ -63,7 +63,7 @@ def fetch_eeprom():
     if size_read == '\x80\x01\xe6\x00': break
     # else it is a data block 
     size = (hexchartoint(size_read[0]) << 8) + hexchartoint(size_read[1])
-    print "Next eeprom data size %d" % size
+    print ("Next eeprom data size {}".format( size ))
     prom += get_eeprom(read_addr,size)
     read_addr+=size
  # one last byte
@@ -78,7 +78,7 @@ def set_eeprom(prom):
    while bytes_written<len(prom):
         # attemp 1024 at a time
         to_write=len(prom)-bytes_written > 1024 and 1024 or len(prom)-bytes_written
-        print "Writing %d Bytes.." % to_write
+        print ("Writing {} Bytes..".format(to_write))
         ret=f.do_usb_command(prom[bytes_written:bytes_written+to_write], 0x40,0xb1,bytes_written, 0, to_write, 10000)
         if ret>0:
             bytes_written += ret;
@@ -88,5 +88,5 @@ def set_eeprom(prom):
 
 if __name__=='__main__':
 
-   openfx2(0x04b4,0x0083) # vid/pid of eeprom firmware 
+   openfx2(0x04b4,0x1004) # vid/pid of eeprom firmware 
 

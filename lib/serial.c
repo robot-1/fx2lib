@@ -88,6 +88,6 @@ int putchar (char c) {
   if (c=='\n') _transchar('\r'); // transmit \r\n
   _transchar(c);  
   if (c == '\r' ) _transchar('\n'); // transmit \r\n
-  return 0
+  return 0;
 }
 

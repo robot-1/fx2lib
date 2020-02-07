@@ -1,3 +1,5 @@
+#!/bin/env python
+
 # Copyright (C) 2009 Ubixum, Inc. 
 #
 # This library is free software; you can redistribute it and/or
@@ -13,27 +15,20 @@
 # 
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USAimport struct
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 
-import struct 
+import optparse
+
+parser=optparse.OptionParser (usage="Usage: %prog [options] bixfile")
+parser.add_option( "-v", "--vid", type='int', default=0x04b4,help='Vendor ID (0x04b4)')
+parser.add_option( "-p", '--pid', type='int', default=0x0082,help='Product Id (0x0082)')
+
+opts,args=parser.parse_args()
+
+if len(args) < 1:
+    parser.error("Specify the path to your firmware bix file as the first argument")
 
 from fx2load import *
-
-openfx2(0x04b4,0x1004)
-
-
-def do_bulk():
-    # send 100 shorts to ep2
-    
-    buf=struct.pack ( 'H'*100, *[i for i in range(100)] )
-    f.ep_bulk( buf,size=len(buf),ep=0x02, timeout=1000)
-    
-    # read them back out
-    buf='\x00'*200  
-    f.ep_bulk( buf,size=len(buf),ep=0x86, timeout=1000)
-    
-
-    print (struct.unpack ( 'H'*100, buf ))
-    
-[do_bulk() for i in range(3)]
+openfx2(opts.vid,opts.pid)
+reset_bix(args[0])

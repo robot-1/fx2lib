@@ -36,7 +36,7 @@ BYTE digits[] = { 0xc0, 0xf9, 0xa4, 0xb0, 0x99, 0x92, 0x82, 0xf8, 0x80, 0x98, 0x
 
 /**
  * This is pretty much the same function that is provided as the dev_io example from Cypress
- * Except is uses i2c read and write functions not from their library
+ * Except it uses i2c read and write functions not from their library
  **/
 void main(void) {
 
