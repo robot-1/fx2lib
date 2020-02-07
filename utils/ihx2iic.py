@@ -28,7 +28,7 @@ import re
 import sys, struct
 import os, os.path
 from optparse import OptionParser
-
+from functools import reduce
 
 def hex_to_bytes (s):
     if len (s) & 0x1:
@@ -116,14 +116,14 @@ def build_eeprom_image (filename, outfile,vid,pid,devid,cb):
     start_addr = 0
 
     while start_addr <= max_addr:
-        if not image_map.has_key(start_addr):
+        if not start_addr in image_map:
             start_addr += 1
             continue
         end_addr = start_addr
         # add continguous data up to 10 bits long (0x3ff)
         # is max size, trm 3.4.3
         size=0
-        while image_map.has_key(end_addr) and size < 0x3ff:
+        while end_addr in image_map and size < 0x3ff:
             end_addr += 1
             size += 1
 
@@ -159,7 +159,7 @@ def build_eeprom_image (filename, outfile,vid,pid,devid,cb):
 
     buf=struct.pack ( "B"*len(image), *image )
     print ("iic Image Size" , len(buf))
-    out=open( outfile, 'w') 
+    out=open( outfile, 'wb') 
     out.write(buf)
     out.close();
 
@@ -181,6 +181,6 @@ if __name__ == '__main__':
 
     ihx_filename = args[0]
     iic_filename = args[1]
-    build_eeprom_image ( ihx_filename, iic_filename, options.vid, options.pid, options.devid, options.configbyte )
+    build_eeprom_image( ihx_filename, iic_filename, options.vid, options.pid, options.devid, options.configbyte )
 
 
