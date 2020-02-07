@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 #
 # Copyright 2009, Ubixum, Inc
 #
@@ -32,7 +32,7 @@ from optparse import OptionParser
 
 def hex_to_bytes (s):
     if len (s) & 0x1:
-        raise ValueError, "Length must be even"
+        raise (ValueError, "Length must be even")
     r = []
     for i in range (0, len(s), 2):
         r.append (int (s[i:i+2], 16))
@@ -58,17 +58,17 @@ class ihx_file (object):
         for line in file:
             line = line.strip().upper ()
             if not self.pat.match (line):
-                raise ValueError, "Invalid hex record format"
+                raise (ValueError, "Invalid hex record format")
             bytes = hex_to_bytes (line[1:])
             sum = reduce (lambda x, y: x + y, bytes, 0) % 256
             if sum != 0:
-                raise ValueError, "Bad hex checksum"
+                raise (ValueError, "Bad hex checksum")
             lenx = bytes[0]
             addr = (bytes[1] << 8) + bytes[2]
             type = bytes[3]
             data = bytes[4:-1]
             if lenx != len (data):
-                raise ValueError, "Invalid hex record (bad length)"
+                raise (ValueError, "Invalid hex record (bad length)")
             if type != 0:
                 break;
             r.append (ihx_rec (addr, type, data))
@@ -158,7 +158,7 @@ def build_eeprom_image (filename, outfile,vid,pid,devid,cb):
         ] )
 
     buf=struct.pack ( "B"*len(image), *image )
-    print "iic Image Size" , len(buf)
+    print ("iic Image Size" , len(buf))
     out=open( outfile, 'w') 
     out.write(buf)
     out.close();
