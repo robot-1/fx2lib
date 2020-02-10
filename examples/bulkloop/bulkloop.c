@@ -31,8 +31,6 @@
 #define REARMVAL 0x80
 #define REARM() EP2BCL=REARMVAL
 
-
-
 volatile WORD bytes;
 volatile __bit gotbuf;
 volatile BYTE icount;
@@ -69,9 +67,9 @@ void main() {
  
  
  // only valid endpoints are 2/6
- EP2CFG = 0xA2; // 10100010
+ EP2CFG = 0xA2; // 10100010 -> OUT
  SYNCDELAY;
- EP6CFG = 0xE2; // 11100010 
+ EP6CFG = 0xE2; // 11100010 -> IN 
  SYNCDELAY;
  EP1INCFG &= ~bmVALID;
  SYNCDELAY;
@@ -205,7 +203,7 @@ void sudav_isr() __interrupt SUDAV_ISR {
 }
 
 __bit on5;
-__xdata WORD sofct=0;
+__xdata WORD sofct=0; // START OF FRAME? What is CT? is it CounTer?
 void sof_isr () __interrupt SOF_ISR __using 1 {
     ++sofct;
     if(sofct==8000) { // about 8000 sof interrupts per second at high speed

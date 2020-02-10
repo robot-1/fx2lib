@@ -21,10 +21,10 @@
 #ifndef FXTYPES_H
 #define FXTYPES_H
 
-typedef unsigned int WORD;
-typedef unsigned char BYTE;
-typedef unsigned long DWORD;
-typedef unsigned char BOOL; 
+typedef unsigned int WORD; // 16 bits, 2bytes **
+typedef unsigned char BYTE; // 8 bits, 1byte **
+typedef unsigned long DWORD; // 32bits 4bytes **
+typedef unsigned char BOOL;  // 8bits, 1byte  **
 typedef enum {
  FALSE=0,
  TRUE

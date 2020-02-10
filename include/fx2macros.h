@@ -122,6 +122,16 @@ typedef enum { CLK_12M =0, CLK_24M, CLK_48M} CLK_SPD;
  * \brief Evaluates to TRUE if a remote wakeup event has occurred.
  **/
 #define REMOTE_WAKEUP() (((WAKEUPCS & bmWU) && (WAKEUPCS & bmWUEN)) || ((WAKEUPCS & bmWU2) && (WAKEUPCS & bmWU2EN)))
+/*static inline BOOL REMOTE_WAKEUP(void){ // is this better than defining macros? by JQ
+    BOOL status;
+    if(((WAKEUPCS & bmWU) && (WAKEUPCS & bmWUEN)) || ((WAKEUPCS & bmWU2) && (WAKEUPCS & bmWU2EN))){
+        status =  TRUE;
+    }else{
+        status = FALSE;
+    }
 
+
+}
+*/
 
 #endif
