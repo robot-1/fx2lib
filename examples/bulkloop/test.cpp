@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
  libusb_context* ctx;
  libusb_init(&ctx);
 
- libusb_device_handle* hndl = libusb_open_device_with_vid_pid(ctx,0x04b4,0x1004);
+ libusb_device_handle* hndl = libusb_open_device_with_vid_pid(ctx,0x04b4,0x1386);
  libusb_claim_interface(hndl,0);
  libusb_set_interface_alt_setting(hndl,0,0);
  

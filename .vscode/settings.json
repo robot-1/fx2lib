@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "autovector.h": "c"
+        "autovector.h": "c",
+        "fx2sdly.h": "c",
+        "fx2regs.h": "c"
     }
 }

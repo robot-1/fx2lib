@@ -5,7 +5,7 @@
 
 #include <fx2regs.h>
 #include <fx2sdly.h>
-
+#include <autovector.h>
 static void
 delay(unsigned times) {
 	unsigned int x, y;

@@ -54,8 +54,8 @@ void main() {
  RENUMERATE_UNCOND(); 
  
 
- SETCPUFREQ(CLK_48M);
- SETIF48MHZ();
+ SETCPUFREQ(CLK_48M); // set CPU Freq first to 48 MHz
+ SETIF48MHZ(); // SET Internal Frequency to 48 MHZ
  sio0_init(57600);
  
  
@@ -202,8 +202,8 @@ void sudav_isr() __interrupt SUDAV_ISR {
   CLEAR_SUDAV();
 }
 
-__bit on5;
-__xdata WORD sofct=0; // START OF FRAME? What is CT? is it CounTer?
+__bit on5; // 1 bit, obviously :) **
+__xdata WORD sofct=0; // START OF FRAME? What is CT? is it CounTer? **
 void sof_isr () __interrupt SOF_ISR __using 1 {
     ++sofct;
     if(sofct==8000) { // about 8000 sof interrupts per second at high speed

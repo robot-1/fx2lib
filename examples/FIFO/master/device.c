@@ -15,7 +15,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  **/
-
 #include <fx2macros.h>
 #include <stdio.h>
 #include <fx2regs.h>
@@ -26,6 +25,7 @@
 #include <setupdat.h>
 #include <fx2sdly.h>
 #include <eputils.h>
+#include <gpif.h>
 #ifdef DEBUG_FIRMWARE
 #include <stdio.h>
 #else
@@ -34,6 +34,7 @@
 
 BOOL handle_get_descriptor() {
     return FALSE;
+
 }
 
 //************************** Configuration Handlers *****************************
@@ -45,9 +46,12 @@ BOOL handle_get_descriptor() {
 // set *alt_ifc to the current alt interface for ifc
 BOOL handle_get_interface(BYTE ifc, BYTE* alt_ifc) {
 // *alt_ifc=alt;
-     printf ( "Get Interface\n" );
- if (ifc==0) {*alt_ifc=0; return TRUE;} else { return FALSE;}
-
+ printf ( "Get Interface\n" );
+ if(ifc==0){
+    *alt_ifc=0; return TRUE;
+ }else{ 
+    return FALSE;
+  }
 }
 // return TRUE if you set the interface requested
 // NOTE this function should reconfigure and reset the endpoints
@@ -90,12 +94,12 @@ BOOL handle_set_configuration(BYTE cfg) {
  printf ( "Set Configuration.\n" );
  //config=cfg;
  return cfg==1 ? TRUE : FALSE; // we only handle cfg 1}
-
 }
+
+
 //******************* VENDOR COMMAND HANDLERS **************************
 
 #define VC_EPSTAT 0xB1
-
 BOOL handle_vendorcommand(BYTE cmd) {
  // your custom vendor handler code here..
   switch ( cmd ) {
@@ -121,104 +125,56 @@ BOOL handle_vendorcommand(BYTE cmd) {
 
 //********************  INIT ***********************
 
-
-const static void initialize(void){
-    CPUCS = 0x10; // 48 MHZ, CLKOUT disabled
-    SYNCDELAY;
-    IFCONFIG = 0xc0;    // Internal IFCLK @ 48MHz
-    SYNCDELAY;
-    REVCTL = 0x03;      // Disable auto-arm + Enhanced packet handling
-    SYNCDELAY;
-    EP6CFG = 0xE2;      // 1110_0010 bulk IN, 512 bytes, double-buffered
-    SYNCDELAY;
-    EP2CFG = 0xA2;      // 1010_0010 bulk OUT, 512 bytes, double-buffered
-    SYNCDELAY;
-    FIFORESET = 0x80;   // NAK all requests from host.
-    SYNCDELAY;
-    FIFORESET = 0x82;   // Reset EP 2
-    SYNCDELAY;
-    FIFORESET = 0x84;   // Reset EP 4..
-    SYNCDELAY;
-    FIFORESET = 0x86;
-    SYNCDELAY;
-    FIFORESET = 0x88;
-    SYNCDELAY;
-    FIFORESET = 0x00;   // Back to normal..
-    SYNCDELAY;
-    EP2FIFOCFG = 0x00;  // Disable AUTOOUT
-    SYNCDELAY;
-    OUTPKTEND = 0x82;   // Clear the 1st buffer
-    SYNCDELAY;
-    OUTPKTEND = 0x82;   // ..both of them
-    SYNCDELAY;
-}
-
-static void
-accept_cmd(void){
-    __xdata const unsigned char *src = EP2FIFOBUF;
-    unsigned len = ((unsigned)EP2BCH)<<8 | EP2BCL;
-
-    if (len<1){
-        return;
-    }
-
-    PA0 = *src & 1;
-    PA1 = *src & 2;
-    OUTPKTEND = 0x82;
-}
-
-static void
-send_state(void){
-    __xdata unsigned char *dest = EP6FIFOBUF;
-    const char *msg1 = PA0 ? "PA0=1" : "PA0=0";
-    const char *msg2 = PA1 ? "PA1=1" : "PA1=0";
-    unsigned char len = 0;
-
-    while(*msg1){
-        *dest++ = *msg1++;
-        ++len;
-    }
-
-    *dest++ = ',';
-    ++len;
-    while(*msg2){
-        *dest++ = *msg2++;
-        ++len;
-    }
-
-    SYNCDELAY;
-    EP6BCH=0;
-    SYNCDELAY;
-    EP6BCL=len;
-}
-
-
-
-
 void main_init() {
 
+ REVCTL=3;
+ SETIF48MHZ();
 
- OEA = 0x03;
- initialize();
+const char __xdata WaveData[128] =
+{
+// Wave 0 
+/* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
+/* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
+/* Output*/ 0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,
+/* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
+// Wave 1 
+/* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
+/* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
+/* Output*/ 0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,
+/* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
+// Wave 2 
+/* LenBr */ 0x02,     0x01,     0x93,     0x01,     0xBA,     0x01,     0x01,     0x07,
+/* Opcode*/ 0x00,     0x00,     0x01,     0x02,     0x01,     0x00,     0x00,     0x00,
+/* Output*/ 0x07,     0x07,     0x04,     0x04,     0x07,     0x07,     0x07,     0x07,
+/* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
+// Wave 3 
+/* LenBr */ 0x01,     0x01,     0x01,     0x9B,     0x01,     0x01,     0x01,     0x07,
+/* Opcode*/ 0x00,     0x00,     0x00,     0x01,     0x00,     0x00,     0x00,     0x00,
+/* Output*/ 0x05,     0x06,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,
+/* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
+};
+const char __xdata FlowStates[36] =
+{
+/* Wave 0 FlowStates */ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/* Wave 1 FlowStates */ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/* Wave 2 FlowStates */ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/* Wave 3 FlowStates */ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+};
+const char __xdata InitData[7] =
+{
+/* Regs  */ 0xE0,0x10,0x00,0x07,0xFE,0x4E,0x00
+};
 
-
- PA0 = 0;
- PA1 = 1;
-
- 
+ gpif_init(WaveData,InitData);
+ gpif_setflowstate(FlowStates,0); // bank 0 
+ gpif_fifo_read(2); // EP2
  printf ( "Initialization Done.\n" );
 
 }
 
 
 void main_loop() {
- // do some work 
- if (!(EP2CS & bmEPEMPTY)){
-     accept_cmd();
- }
- if (!(EP6CS & bmEPFULL)){
-     send_state();
- }
+ // do some work
 }
 
 

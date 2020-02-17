@@ -15,7 +15,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  **/
-
 #include <fx2macros.h>
 #include <stdio.h>
 #include <fx2regs.h>
@@ -26,6 +25,7 @@
 #include <setupdat.h>
 #include <fx2sdly.h>
 #include <eputils.h>
+#include <gpif.h>
 #ifdef DEBUG_FIRMWARE
 #include <stdio.h>
 #else
@@ -34,6 +34,7 @@
 
 BOOL handle_get_descriptor() {
     return FALSE;
+
 }
 
 //************************** Configuration Handlers *****************************
@@ -45,9 +46,12 @@ BOOL handle_get_descriptor() {
 // set *alt_ifc to the current alt interface for ifc
 BOOL handle_get_interface(BYTE ifc, BYTE* alt_ifc) {
 // *alt_ifc=alt;
-     printf ( "Get Interface\n" );
- if (ifc==0) {*alt_ifc=0; return TRUE;} else { return FALSE;}
-
+ printf ( "Get Interface\n" );
+ if(ifc==0){
+    *alt_ifc=0; return TRUE;
+ }else{ 
+    return FALSE;
+  }
 }
 // return TRUE if you set the interface requested
 // NOTE this function should reconfigure and reset the endpoints
@@ -90,12 +94,12 @@ BOOL handle_set_configuration(BYTE cfg) {
  printf ( "Set Configuration.\n" );
  //config=cfg;
  return cfg==1 ? TRUE : FALSE; // we only handle cfg 1}
-
 }
+
+
 //******************* VENDOR COMMAND HANDLERS **************************
 
 #define VC_EPSTAT 0xB1
-
 BOOL handle_vendorcommand(BYTE cmd) {
  // your custom vendor handler code here..
   switch ( cmd ) {
@@ -117,10 +121,6 @@ BOOL handle_vendorcommand(BYTE cmd) {
      return FALSE;
  }
 }
-
-
-//********************  INIT ***********************
-
 
 const static void initialize(void){
     CPUCS = 0x10; // 48 MHZ, CLKOUT disabled
@@ -151,7 +151,9 @@ const static void initialize(void){
     SYNCDELAY;
     OUTPKTEND = 0x82;   // ..both of them
     SYNCDELAY;
+
 }
+
 
 static void
 accept_cmd(void){
@@ -162,16 +164,17 @@ accept_cmd(void){
         return;
     }
 
-    PA0 = *src & 1;
-    PA1 = *src & 2;
+   //  PA0 = *src & 1;
+   //  PA1 = *src & 2;
     OUTPKTEND = 0x82;
 }
 
 static void
 send_state(void){
     __xdata unsigned char *dest = EP6FIFOBUF;
-    const char *msg1 = PA0 ? "PA0=1" : "PA0=0";
-    const char *msg2 = PA1 ? "PA1=1" : "PA1=0";
+   //  const char *msg1 = PA0 ? "PA0=1" : "PA0=0";
+   //  const char *msg2 = PA1 ? "PA1=1" : "PA1=0";
+   const char *msg1 = "PUTANG INA!";
     unsigned char len = 0;
 
     while(*msg1){
@@ -179,12 +182,12 @@ send_state(void){
         ++len;
     }
 
-    *dest++ = ',';
-    ++len;
-    while(*msg2){
-        *dest++ = *msg2++;
-        ++len;
-    }
+   //  *dest++ = ',';
+   //  ++len;
+   //  while(*msg2){
+   //      *dest++ = *msg2++;
+   //      ++len;
+   //  }
 
     SYNCDELAY;
     EP6BCH=0;
@@ -192,29 +195,30 @@ send_state(void){
     EP6BCL=len;
 }
 
-
-
+//********************  INIT ***********************
 
 void main_init() {
-
 
  OEA = 0x03;
  initialize();
 
 
- PA0 = 0;
+ PA0 = 1;
  PA1 = 1;
-
- 
  printf ( "Initialization Done.\n" );
 
 }
 
 
 void main_loop() {
- // do some work 
- if (!(EP2CS & bmEPEMPTY)){
+
+  if (!(EP2CS & bmEPEMPTY)){
+     PA0 ^= 1;
+   //   PA0 ^= 1;
+   //   OUTPKTEND = 0x82; // Auto-dispatch the OUT packet in EP2
+   //   SYNCDELAY;
      accept_cmd();
+
  }
  if (!(EP6CS & bmEPFULL)){
      send_state();

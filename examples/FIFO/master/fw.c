@@ -22,7 +22,7 @@
 #include <delay.h>
 #include <setupdat.h>
 
-#ifdef DEBUG_FIRMWARE
+#ifdef DEBUG_FIRMWARE 
 #include <serial.h>
 #include <stdio.h>
 #else
@@ -97,6 +97,11 @@ Some chips have built in external memory (__xdata) which should not be confused 
 
 
 */
+
+
+
+
+
 
 
 

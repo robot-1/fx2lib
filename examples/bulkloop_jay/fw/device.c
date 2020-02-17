@@ -23,14 +23,17 @@
 #include <delay.h>
 #include <autovector.h>
 #include <lights.h>
+// #include "../../include/fx2sdly.h"
 #ifdef DEBUG_FIRMWARE
 #include <stdio.h>
 #else
 #define printf(...)
 #endif
 
-BOOL handle_get_descriptor() {
+#define SYNCDELAY SYNCDELAY4
 
+BOOL handle_get_descriptor() {
+    return FALSE;
 }
 
 //************************** Configuration Handlers *****************************
@@ -42,6 +45,9 @@ BOOL handle_get_descriptor() {
 // set *alt_ifc to the current alt interface for ifc
 BOOL handle_get_interface(BYTE ifc, BYTE* alt_ifc) {
 // *alt_ifc=alt;
+ printf ( "Get Interface\n" );
+ if (ifc==0) {*alt_ifc=0; return TRUE;} else { return FALSE;}
+
  return TRUE;
 }
 // return TRUE if you set the interface requested
@@ -51,7 +57,23 @@ BOOL handle_set_interface(BYTE ifc,BYTE alt_ifc) {
  printf ( "Set Interface.\n" );
  //interface=ifc;
  //alt=alt_ifc;
- return TRUE;
+ if (ifc==0&&alt_ifc==0) {
+    // SEE TRM 2.3.7
+    // reset toggles
+    RESETTOGGLE(0x02);
+    RESETTOGGLE(0x86);
+    // restore endpoints to default condition
+    RESETFIFO(0x02);
+    EP2BCL=0x80;
+    SYNCDELAY;
+    EP2BCL=0X80;
+    SYNCDELAY;
+    RESETFIFO(0x86);
+    return TRUE;
+ } else{
+    return FALSE;
+ }
+
 }
 
 // handle getting and setting the configuration
@@ -67,7 +89,9 @@ BYTE handle_get_configuration() {
 BOOL handle_set_configuration(BYTE cfg) { 
  printf ( "Set Configuration.\n" );
  //config=cfg;
- return TRUE;
+ //return TRUE;
+ return cfg==1 ? TRUE : FALSE; // we only handle cfg 1
+
 }
 
 
@@ -112,15 +136,52 @@ const static void initialize(void){
     SYNCDELAY;
     OUTPKTEND = 0x82;   // ..both of them
     SYNCDELAY;
-
-
 }
 
+static void accept_cmd(void)
+{
+    __xdata const unsigned char *src = EP2FIFOBUF;
+    unsigned len = ((unsigned)EP2BCH)<<8 | EP2BCL;
+    if ( len < 1 )
+    {
+        return;
+    }
+    PA0 = *src & 1;
+    PA1 = *src & 2;
+    OUTPKTEND = 0x82;
+}
+static void 
+send_state(void)
+{
+    __xdata unsigned char *dest = EP6FIFOBUF;
+    const char *msg1 = PA0 ? "PA0=1" : "PA0=0";
+    const char *msg2 = PA1 ? "PA1=1" : "PA1=0";
+    unsigned char len=0;
+
+    while (*msg1)
+    {
+            *dest++ = *msg++;
+            ++len;
+    }
+    *dest++ = ',';
+    ++len;
+    while ( *msg2 )
+    {
+        *dest++ = *msg2++;
+        ++len;
+    }
+
+    SYNCDELAY;
+    EP6BCH=0;
+    SYNCDELAY;
+    EP6BCL=len;
+}
 
 void main_init() {
 
  REVCTL=3;
  SETIF48MHZ();
+ OEA = 0x03;
 
  // set IFCONFIG
  // config your endpoints etc.
