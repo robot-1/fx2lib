@@ -71,7 +71,7 @@ BOOL handle_set_interface(BYTE ifc,BYTE alt_ifc) {
     RESETFIFO(0x02);
     EP2BCL=0x80;
     SYNCDELAY;
-    EP2BCL=0X80;
+    EP2BCL=0X80;    
     SYNCDELAY;
     RESETFIFO(0x86);
     return TRUE;
@@ -84,7 +84,7 @@ BOOL handle_set_interface(BYTE ifc,BYTE alt_ifc) {
 // 1 is the default.  If you support more than one config
 // keep track of the config number and return the correct number
 // config numbers are set int the dscr file.
-//volatile BYTE config=1;
+//volatile BYTE config=1
 BYTE handle_get_configuration() { 
  return 1;
 }
@@ -123,20 +123,16 @@ BOOL handle_vendorcommand(BYTE cmd) {
 }
 
 const static void initialize(void){
-    CPUCS = bmCLKSPD1 | bmCLKOE; // 48 MHZ, CLKOUT disabled
+    CPUCS = bmCLKSPD1; // 48 MHZ, CLKOUT disabled, 0x01
     SYNCDELAY;
-    IFCONFIG = bmIFCLKSRC | bm3048MHZ | bmIFCLKOE | bmIFCFG1;    // Internal IFCLK @ 48MHz, IFCLK out,GPIF MASTER
+    IFCONFIG = bmIFCLKSRC | bm3048MHZ;    // Internal IFCLK @ 48MHz 0xc3
     SYNCDELAY;
-    REVCTL = bmNOAUTOARM | bmSKIPCOMMIT;      // Disable auto-arm + Enhanced packet handling 
+    REVCTL = bmNOAUTOARM | bmSKIPCOMMIT;      // Disable auto-arm + Enhanced packet handling 0x03
     SYNCDELAY;
-
-
     EP6CFG = bmVALID | bmDIR | bmTYPE1 | bmBUF1;      // 1110_0010 bulk IN, 512 bytes, double-buffered 0xE2
     SYNCDELAY;
     EP2CFG =  bmVALID | bmTYPE1 | bmBUF1;     // 1010_0010 bulk OUT, 512 bytes, double-buffered 0xA2
     SYNCDELAY;
-
-
     FIFORESET = bmNAKALL;   // NAK all requests from host. 0x80
     SYNCDELAY;
     FIFORESET = bmBIT7 | bmBIT1;   // Reset EP 2 0x82
@@ -156,65 +152,70 @@ const static void initialize(void){
     OUTPKTEND = 0x82;   // ..both of them
     SYNCDELAY;
 
-    EP2FIFOCFG =  bmAUTOOUT; // AUTO OUT, 8 bit data
+}
+
+static void
+send_state(__xdata const unsigned char *msg,unsigned int data_len){
+    __xdata unsigned char *dest = EP6FIFOBUF;
+    unsigned char len = 0;
+
+    for(int i = 0;i<data_len;i++){
+        *dest++ = *msg++;
+    }
+    EP6BCH= data_len & 0xFF00;
     SYNCDELAY;
-    EP6FIFOCFG = bmAUTOIN; // AUTO IN, 8 bit data
-    SYNCDELAY;
+    EP6BCL= data_len & 0x00FF;
 
 }
+
+static void
+accept_cmd(void){
+    __xdata const unsigned char *src = EP2FIFOBUF;
+    unsigned len = ((unsigned)EP2BCH)<<8 | EP2BCL;
+
+    if (len<1){
+        return;
+    }
+    
+    if (!(EP6CS & bmEPFULL)){
+        send_state(src,len);
+    }
+    OUTPKTEND = 0x80;
+    
+    OUTPKTEND = 0x82;
+    SYNCDELAY;
+    OUTPKTEND = 0x82;
+    
+    
+}
+
+
+
 //********************  INIT ***********************
 
 void main_init() {
 
- REVCTL=3;
- SETIF48MHZ();
-
-const char __xdata WaveData[128] =
-{
-// Wave 0 
-/* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
-/* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
-/* Output*/ 0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,
-/* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
-// Wave 1 
-/* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
-/* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
-/* Output*/ 0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,
-/* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
-// Wave 2 
-/* LenBr */ 0x02,     0x01,     0x93,     0x01,     0xBA,     0x01,     0x01,     0x07,
-/* Opcode*/ 0x00,     0x00,     0x01,     0x02,     0x01,     0x00,     0x00,     0x00,
-/* Output*/ 0x07,     0x07,     0x04,     0x04,     0x07,     0x07,     0x07,     0x07,
-/* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
-// Wave 3 
-/* LenBr */ 0x01,     0x01,     0x01,     0x9B,     0x01,     0x01,     0x01,     0x07,
-/* Opcode*/ 0x00,     0x00,     0x00,     0x01,     0x00,     0x00,     0x00,     0x00,
-/* Output*/ 0x05,     0x06,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,
-/* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
-};
-const char __xdata FlowStates[36] =
-{
-/* Wave 0 FlowStates */ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-/* Wave 1 FlowStates */ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-/* Wave 2 FlowStates */ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-/* Wave 3 FlowStates */ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-};
-const char __xdata InitData[7] =
-{
-/* Regs  */ 0xE0,0x10,0x00,0x07,0xFE,0x4E,0x00
-};
-
- gpif_init(WaveData,InitData);
+ OEA = 0x03;
  initialize();
- gpif_setflowstate(FlowStates,0); // bank 0 
- gpif_fifo_read(2); // EP2
+
+
+ PA0 = 1;
+ PA1 = 1;
  printf ( "Initialization Done.\n" );
 
 }
 
 
 void main_loop() {
- // do some work
+
+ if (!(EP2CS & bmEPEMPTY)){    
+     PA0 ^= 1;
+     accept_cmd();
+
+ }
+
+
+
 }
 
 

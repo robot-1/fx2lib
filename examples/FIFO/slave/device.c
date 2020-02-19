@@ -71,7 +71,7 @@ BOOL handle_set_interface(BYTE ifc,BYTE alt_ifc) {
     RESETFIFO(0x02);
     EP2BCL=0x80;
     SYNCDELAY;
-    EP2BCL=0X80;
+    EP2BCL=0X80;    
     SYNCDELAY;
     RESETFIFO(0x86);
     return TRUE;
@@ -84,7 +84,7 @@ BOOL handle_set_interface(BYTE ifc,BYTE alt_ifc) {
 // 1 is the default.  If you support more than one config
 // keep track of the config number and return the correct number
 // config numbers are set int the dscr file.
-//volatile BYTE config=1;
+//volatile BYTE config=1
 BYTE handle_get_configuration() { 
  return 1;
 }
@@ -123,17 +123,18 @@ BOOL handle_vendorcommand(BYTE cmd) {
 }
 
 const static void initialize(void){
-    CPUCS = 0x10; // 48 MHZ, CLKOUT disabled
+    CPUCS = bmCLKSPD1; // 48 MHZ, CLKOUT disabled
     SYNCDELAY;
-    IFCONFIG = 0xc0;    // Internal IFCLK @ 48MHz
+    IFCONFIG = /*bmIFCLKSRC | bmASYNC |*/ bm3048MHZ | bmIFCFGMASK;    // Internal IFCLK @ 48MHz, SLAVE FIFO, Synchronous
     SYNCDELAY;
-    REVCTL = 0x03;      // Disable auto-arm + Enhanced packet handling
+    REVCTL = bmNOAUTOARM | bmSKIPCOMMIT;     // Disable auto-arm + Enhanced packet handling
     SYNCDELAY;
-    EP6CFG = 0xE2;      // 1110_0010 bulk IN, 512 bytes, double-buffered
+
+    EP6CFG = bmVALID | bmDIR | bmTYPE1 | bmBUF1;      // 1110_0010 bulk IN, 512 bytes, double-buffered
     SYNCDELAY;
-    EP2CFG = 0xA2;      // 1010_0010 bulk OUT, 512 bytes, double-buffered
+    EP2CFG = bmVALID | bmTYPE1 | bmBUF1;     // 1010_0010 bulk OUT, 512 bytes, double-buffered
     SYNCDELAY;
-    FIFORESET = 0x80;   // NAK all requests from host.
+    FIFORESET = bmNAKALL;   // NAK all requests from host.
     SYNCDELAY;
     FIFORESET = 0x82;   // Reset EP 2
     SYNCDELAY;
@@ -151,9 +152,24 @@ const static void initialize(void){
     SYNCDELAY;
     OUTPKTEND = 0x82;   // ..both of them
     SYNCDELAY;
+    EP2FIFOCFG =  bmAUTOOUT; // AUto-OUT, 8 bit data
+    
 
 }
 
+static void
+send_state(__xdata const unsigned char *msg,unsigned int data_len){
+    __xdata unsigned char *dest = EP6FIFOBUF;
+    unsigned char len = 0;
+
+    for(int i = 0;i<data_len;i++){
+        *dest++ = *msg++;
+    }
+    EP6BCH= data_len & 0xFF00;
+    SYNCDELAY;
+    EP6BCL= data_len & 0x00FF;
+
+}
 
 static void
 accept_cmd(void){
@@ -163,37 +179,20 @@ accept_cmd(void){
     if (len<1){
         return;
     }
-
-   //  PA0 = *src & 1;
-   //  PA1 = *src & 2;
-    OUTPKTEND = 0x82;
-}
-
-static void
-send_state(void){
-    __xdata unsigned char *dest = EP6FIFOBUF;
-   //  const char *msg1 = PA0 ? "PA0=1" : "PA0=0";
-   //  const char *msg2 = PA1 ? "PA1=1" : "PA1=0";
-   const char *msg1 = "PUTANG INA!";
-    unsigned char len = 0;
-
-    while(*msg1){
-        *dest++ = *msg1++;
-        ++len;
+    
+    if (!(EP6CS & bmEPFULL)){
+        send_state(src,len);
     }
-
-   //  *dest++ = ',';
-   //  ++len;
-   //  while(*msg2){
-   //      *dest++ = *msg2++;
-   //      ++len;
-   //  }
-
+    OUTPKTEND = 0x80;
+    
+    OUTPKTEND = 0x82;
     SYNCDELAY;
-    EP6BCH=0;
-    SYNCDELAY;
-    EP6BCL=len;
+    OUTPKTEND = 0x82;
+    
+    
 }
+
+
 
 //********************  INIT ***********************
 
@@ -212,17 +211,14 @@ void main_init() {
 
 void main_loop() {
 
-  if (!(EP2CS & bmEPEMPTY)){
+ if (!(EP2CS & bmEPEMPTY)){    
      PA0 ^= 1;
-   //   PA0 ^= 1;
-   //   OUTPKTEND = 0x82; // Auto-dispatch the OUT packet in EP2
-   //   SYNCDELAY;
      accept_cmd();
 
  }
- if (!(EP6CS & bmEPFULL)){
-     send_state();
- }
+
+
+
 }
 
 
