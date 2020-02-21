@@ -141,12 +141,12 @@ void gpif_set_tc32(DWORD tc) {
     SYNCDELAY;
     GPIFTCB0 = LSB(LSW(tc));
 }
+
 void gpif_set_tc16(WORD tc) {
     GPIFTCB1= MSB(tc);
     SYNCDELAY;
     GPIFTCB0= LSB(tc);
 }
-
 
 void gpif_single_read16( WORD* res, WORD len ){
     BYTE c;    
@@ -172,8 +172,11 @@ void gpif_single_write16( WORD* dat, WORD len) {
 }
 
 void gpif_fifo_read ( GPIF_EP_NUM ep_num ) {
-    while ( !(GPIFTRIG & 0x80 ) ); // wait until things are finished
-    GPIFTRIG = GPIFTRGRD | ep_num;
+    if ( !(GPIFTRIG & 0x80 ) ) return; // wait until things are finished, TRM READ TRANSACTION 1, poll GPIFTRIG.7 GPIF Done bit
+    //poll GPIFTRIG.7 GPIF Done bit
+    GPIFTRIG = GPIFTRGRD | ep_num; // The waveform is started by writing to EPxGPIFTRIG, or to GPIFTRIG
+                                    // R/W=1, EP[1:0]=FIFO_EpNum
+                                     // for EPx reads
 }
 
 void gpif_fifo_write ( GPIF_EP_NUM ep_num ) {

@@ -37,7 +37,7 @@ BOOL handle_get_descriptor() {
 
 }
 
-//************************** Configuration Handlers *****************************
+//******************** Configuration Handlers *************************
 
 // change to support as many interfaces as you need
 //volatile xdata BYTE interface=0;
@@ -56,7 +56,7 @@ BOOL handle_get_interface(BYTE ifc, BYTE* alt_ifc) {
 // return TRUE if you set the interface requested
 // NOTE this function should reconfigure and reset the endpoints
 // according to the interface descriptors you provided.
-BOOL handle_set_interface(BYTE ifc,BYTE alt_ifc) {  
+BOOL handle_set_interface(BYTE ifc,BYTE alt_ifc) {
  printf ( "Set Interface.\n" );
  //interface=ifc;
  //alt=alt_ifc;
@@ -85,12 +85,12 @@ BOOL handle_set_interface(BYTE ifc,BYTE alt_ifc) {
 // keep track of the config number and return the correct number
 // config numbers are set int the dscr file.
 //volatile BYTE config=1;
-BYTE handle_get_configuration() { 
+BYTE handle_get_configuration() {
  return 1;
 }
 
 // NOTE changing config requires the device to reset all the endpoints
-BOOL handle_set_configuration(BYTE cfg) { 
+BOOL handle_set_configuration(BYTE cfg) {
  printf ( "Set Configuration.\n" );
  //config=cfg;
  return cfg==1 ? TRUE : FALSE; // we only handle cfg 1}
@@ -123,42 +123,52 @@ BOOL handle_vendorcommand(BYTE cmd) {
 }
 
 const static void initialize(void){
-    CPUCS = bmCLKSPD1 | bmCLKOE; // 48 MHZ, CLKOUT disabled
+    // 48 MHZ, CLKOUT enabled
+    CPUCS = bmCLKSPD1;
     SYNCDELAY;
-    IFCONFIG = bmIFCLKSRC | bm3048MHZ | bmIFCLKOE | bmIFCFG1;    // Internal IFCLK @ 48MHz, IFCLK out,GPIF MASTER
+    // Internal IFCLK @ 48MHz, IFCLK out,GPIF MASTER
+    IFCONFIG = bmIFCLKSRC | bm3048MHZ | bmIFCLKOE | bmIFCFG1;
     SYNCDELAY;
-    REVCTL = bmNOAUTOARM | bmSKIPCOMMIT;      // Disable auto-arm + Enhanced packet handling 
+    // Disable auto-arm + Enhanced packet handling
+    REVCTL = bmNOAUTOARM | bmSKIPCOMMIT;
     SYNCDELAY;
-
-
-    EP6CFG = bmVALID | bmDIR | bmTYPE1 | bmBUF1;      // 1110_0010 bulk IN, 512 bytes, double-buffered 0xE2
+    // bulk IN, 512 bytes, double-buffered 0xE2
+    EP6CFG = bmVALID | bmDIR | bmTYPE1 | bmBUF1;
     SYNCDELAY;
-    EP2CFG =  bmVALID | bmTYPE1 | bmBUF1;     // 1010_0010 bulk OUT, 512 bytes, double-buffered 0xA2
+    // bulk OUT, 512 bytes, double-buffered 0xA2
+    EP2CFG =  bmVALID | bmTYPE1 | bmBUF1;
     SYNCDELAY;
-
-
-    FIFORESET = bmNAKALL;   // NAK all requests from host. 0x80
+    // NAK all requests from host. 0x80
+    FIFORESET = bmNAKALL;
     SYNCDELAY;
-    FIFORESET = bmBIT7 | bmBIT1;   // Reset EP 2 0x82
+    // Reset EP 2 0x82
+    FIFORESET = bmBIT7 | bmBIT1;
     SYNCDELAY;
-    FIFORESET = 0x84;   // Reset EP 4..
+    // Reset EP 4..
+    FIFORESET = 0x84;
     SYNCDELAY;
     FIFORESET = 0x86;
     SYNCDELAY;
     FIFORESET = 0x88;
     SYNCDELAY;
-    FIFORESET = 0x00;   // Back to normal..
+    // Back to normal..
+    FIFORESET = 0x00;
     SYNCDELAY;
-    EP2FIFOCFG = 0x00;  // Disable AUTOOUT
+    // Disable AUTOOUT
+    EP2FIFOCFG = 0x00;
     SYNCDELAY;
-    OUTPKTEND = 0x82;   // Clear the 1st buffer
+    // Clear the 1st buffer
+    OUTPKTEND = 0x82;
     SYNCDELAY;
-    OUTPKTEND = 0x82;   // ..both of them
+    // ..both of them
+    OUTPKTEND = 0x82;
     SYNCDELAY;
-
-    EP2FIFOCFG =  bmAUTOOUT; // AUTO OUT, 8 bit data
+    INPKTEND = 0x86;
     SYNCDELAY;
-    EP6FIFOCFG = bmAUTOIN; // AUTO IN, 8 bit data
+    INPKTEND = 0x86;
+    SYNCDELAY;
+    // manual IN, 8 bit data bmAUTOIN
+    EP6FIFOCFG = 0x00;
     SYNCDELAY;
 
 }
@@ -166,27 +176,24 @@ const static void initialize(void){
 
 void main_init() {
 
- REVCTL=3;
- SETIF48MHZ();
-
 const char __xdata WaveData[128] =
 {
-// Wave 0 
+// Wave 0
 /* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
 /* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
 /* Output*/ 0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,
 /* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
-// Wave 1 
+// Wave 1
 /* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
 /* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
 /* Output*/ 0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,
 /* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
-// Wave 2 
+// Wave 2
 /* LenBr */ 0x02,     0x01,     0x93,     0x01,     0xBA,     0x01,     0x01,     0x07,
 /* Opcode*/ 0x00,     0x00,     0x01,     0x02,     0x01,     0x00,     0x00,     0x00,
 /* Output*/ 0x07,     0x07,     0x04,     0x04,     0x07,     0x07,     0x07,     0x07,
 /* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
-// Wave 3 
+//
 /* LenBr */ 0x01,     0x01,     0x01,     0x9B,     0x01,     0x01,     0x01,     0x07,
 /* Opcode*/ 0x00,     0x00,     0x00,     0x01,     0x00,     0x00,     0x00,     0x00,
 /* Output*/ 0x05,     0x06,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,
@@ -203,18 +210,25 @@ const char __xdata InitData[7] =
 {
 /* Regs  */ 0xE0,0x10,0x00,0x07,0xFE,0x4E,0x00
 };
-
- gpif_init(WaveData,InitData);
+ OEA = 0x01;
+ PA0 = 0;
  initialize();
- gpif_setflowstate(FlowStates,0); // bank 0 
- gpif_fifo_read(2); // EP2
+ gpif_init(WaveData,InitData);
+ gpif_setflowstate(FlowStates,0); // bank 0
+ gpif_set_tc16(4);
  printf ( "Initialization Done.\n" );
 
 }
 
-
 void main_loop() {
- // do some work
+// do some work
+gpif_fifo_read(GPIF_EP6); // data to EP6
+
+// unsigned len = ((unsigned)EP6BCH) << 8 | EP6BCL;
+
+// if(len < 1) return;
+if(!(EP6CS & bmEPFULL)) return;
+PA0 = 1;
 }
 
 

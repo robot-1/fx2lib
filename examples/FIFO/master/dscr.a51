@@ -57,7 +57,7 @@ _dev_dscr:
 	.db	0xff					  ; protocol (vendor specific)
 	.db	64					  ; packet size (ep0)
 	.dw	0xB404					  ; vendor id 
-	.dw	0x1386					  ; product id
+	.dw	0x1747					  ; product id
 	.dw	0x0100					  ; version id
 	.db	0		                 	  ; manufacturure str idx				
 	.db	2				          ; product str idx	
@@ -227,7 +227,7 @@ fullspd_dscr_end:
 	.db	DSCR_ENDPOINT_LEN
 	.db	DSCR_ENDPOINT_TYPE
 	.db	0x86				;  ep6 dir=in and address
-	.db	ENDPOINT_TYPE_BULK		; typehttps://www.facebook.com/
+	.db	ENDPOINT_TYPE_BULK		; type
 	.db	0x40				; max packet LSB
 	.db	0x00				; max packet size=64 bytes
 	.db	0x00				; polling interval

@@ -49,14 +49,14 @@ BOOL handle_get_interface(BYTE ifc, BYTE* alt_ifc) {
  printf ( "Get Interface\n" );
  if(ifc==0){
     *alt_ifc=0; return TRUE;
- }else{ 
+ }else{
     return FALSE;
   }
 }
 // return TRUE if you set the interface requested
 // NOTE this function should reconfigure and reset the endpoints
 // according to the interface descriptors you provided.
-BOOL handle_set_interface(BYTE ifc,BYTE alt_ifc) {  
+BOOL handle_set_interface(BYTE ifc,BYTE alt_ifc) {
  printf ( "Set Interface.\n" );
  //interface=ifc;
  //alt=alt_ifc;
@@ -71,7 +71,7 @@ BOOL handle_set_interface(BYTE ifc,BYTE alt_ifc) {
     RESETFIFO(0x02);
     EP2BCL=0x80;
     SYNCDELAY;
-    EP2BCL=0X80;    
+    EP2BCL=0X80;
     SYNCDELAY;
     RESETFIFO(0x86);
     return TRUE;
@@ -85,12 +85,12 @@ BOOL handle_set_interface(BYTE ifc,BYTE alt_ifc) {
 // keep track of the config number and return the correct number
 // config numbers are set int the dscr file.
 //volatile BYTE config=1
-BYTE handle_get_configuration() { 
+BYTE handle_get_configuration() {
  return 1;
 }
 
 // NOTE changing config requires the device to reset all the endpoints
-BOOL handle_set_configuration(BYTE cfg) { 
+BOOL handle_set_configuration(BYTE cfg) {
  printf ( "Set Configuration.\n" );
  //config=cfg;
  return cfg==1 ? TRUE : FALSE; // we only handle cfg 1}
@@ -123,38 +123,49 @@ BOOL handle_vendorcommand(BYTE cmd) {
 }
 
 const static void initialize(void){
-    CPUCS = bmCLKSPD1; // 48 MHZ, CLKOUT disabled
+    // 48 MHZ, CLKOUT disabled
+    CPUCS = bmCLKSPD1;
     SYNCDELAY;
-    IFCONFIG = /*bmIFCLKSRC | bmASYNC |*/ bm3048MHZ | bmIFCFGMASK;    // Internal IFCLK @ 48MHz, SLAVE FIFO, Synchronous
+    // External IFCLK @ 48MHz, SLAVE FIFO, Synchronous
+    IFCONFIG = bm3048MHZ | bmIFCFGMASK;
     SYNCDELAY;
-    REVCTL = bmNOAUTOARM | bmSKIPCOMMIT;     // Disable auto-arm + Enhanced packet handling
+    // Disable auto-arm + Enhanced packet handling
+    REVCTL = bmNOAUTOARM | bmSKIPCOMMIT;
     SYNCDELAY;
-
-    EP6CFG = bmVALID | bmDIR | bmTYPE1 | bmBUF1;      // 1110_0010 bulk IN, 512 bytes, double-buffered
+    // bulk IN, 512 bytes, double-buffered
+    EP6CFG = bmVALID | bmDIR | bmTYPE1 | bmBUF1;
     SYNCDELAY;
-    EP2CFG = bmVALID | bmTYPE1 | bmBUF1;     // 1010_0010 bulk OUT, 512 bytes, double-buffered
+    // bulk OUT, 512 bytes, double-buffered
+    EP2CFG = bmVALID | bmTYPE1 | bmBUF1;
     SYNCDELAY;
-    FIFORESET = bmNAKALL;   // NAK all requests from host.
+    PINFLAGSAB = 1 << 3 | 7 << 1;
     SYNCDELAY;
-    FIFORESET = 0x82;   // Reset EP 2
+    // NAK all requests from host.
+    FIFORESET = bmNAKALL;
     SYNCDELAY;
-    FIFORESET = 0x84;   // Reset EP 4..
+    // Reset EP 2
+    FIFORESET = 0x82;
+    SYNCDELAY;
+    // Reset EP 4..
+    FIFORESET = 0x84;
     SYNCDELAY;
     FIFORESET = 0x86;
     SYNCDELAY;
     FIFORESET = 0x88;
     SYNCDELAY;
-    FIFORESET = 0x00;   // Back to normal..
+    // Back to normal..
+    FIFORESET = 0x00;
     SYNCDELAY;
-    EP2FIFOCFG = 0x00;  // Disable AUTOOUT
+    // Clear the 1st buffer
+    OUTPKTEND = 0x82;
     SYNCDELAY;
-    OUTPKTEND = 0x82;   // Clear the 1st buffer
+    // ..both of them
+    OUTPKTEND = 0x82;
     SYNCDELAY;
-    OUTPKTEND = 0x82;   // ..both of them
-    SYNCDELAY;
-    EP2FIFOCFG =  bmAUTOOUT; // AUto-OUT, 8 bit data
-    
-
+    //REVCTL = 0x00;
+    //SYNCDELAY;
+    //EP2FIFOCFG = bmAUTOOUT;
+    //SYNCDELAY;
 }
 
 static void
@@ -165,6 +176,7 @@ send_state(__xdata const unsigned char *msg,unsigned int data_len){
     for(int i = 0;i<data_len;i++){
         *dest++ = *msg++;
     }
+
     EP6BCH= data_len & 0xFF00;
     SYNCDELAY;
     EP6BCL= data_len & 0x00FF;
@@ -176,49 +188,42 @@ accept_cmd(void){
     __xdata const unsigned char *src = EP2FIFOBUF;
     unsigned len = ((unsigned)EP2BCH)<<8 | EP2BCL;
 
-    if (len<1){
-        return;
-    }
-    
-    if (!(EP6CS & bmEPFULL)){
-        send_state(src,len);
-    }
-    OUTPKTEND = 0x80;
-    
-    OUTPKTEND = 0x82;
+    if (len<1) return;
+
+    if (!(EP6CS & bmEPFULL)) send_state(src,len);
+
+    FIFORESET = 0x80;
     SYNCDELAY;
-    OUTPKTEND = 0x82;
-    
-    
+    FIFORESET = 0x02;
+    SYNCDELAY;
+    FIFORESET = 0x00;
+    SYNCDELAY;
+    OUTPKTEND = 0x82; // SKIP OUT data
+    SYNCDELAY;
+    OUTPKTEND = 0x82; // SKIP OUT data
+    SYNCDELAY;
 }
-
-
 
 //********************  INIT ***********************
 
 void main_init() {
-
- OEA = 0x03;
+ OEA = 0x01;
  initialize();
-
-
  PA0 = 1;
- PA1 = 1;
  printf ( "Initialization Done.\n" );
 
 }
 
-
 void main_loop() {
 
- if (!(EP2CS & bmEPEMPTY)){    
-     PA0 ^= 1;
-     accept_cmd();
+ if (!(EP2CS & bmEPEMPTY)){
+      OUTPKTEND = 0x02;
+      SYNCDELAY;
+      OUTPKTEND = 0x02;
+      SYNCDELAY;
 
+   PA0 ^= 1;
+   //accept_cmd();
  }
 
-
-
 }
-
-
