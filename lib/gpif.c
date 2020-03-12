@@ -20,7 +20,6 @@
 #include <fx2regs.h>
 #include <fx2macros.h>
 #include <delay.h>
-
 #include <gpif.h>
 
 #define SYNCDELAY SYNCDELAY16 // using most conservative SYNCDELAY
@@ -56,8 +55,8 @@ void gpif_init( BYTE* wavedata, BYTE* initdata ) {
   // ASYNC=1      , master samples asynchronous
   // GSTATE=1     , Drive GPIF states out on PORTE[2:0], debug WF
   // IFCFG[1:0]=10, FX2 in GPIF master mode  IFCONFIG
-  IFCONFIG &= ~0x03; // turn off IFCFG[1:0]
-  IFCONFIG |= 0x02; // set's IFCFG[1:0] to 10 to put in GPIF master mode.
+  // IFCONFIG &= ~0x03; // turn off IFCFG[1:0]
+  // IFCONFIG |= 0x02; // set's IFCFG[1:0] to 10 to put in GPIF master mode.
   
  
   GPIFABORT = 0xFF;  // abort any waveforms pending
@@ -91,10 +90,10 @@ void gpif_init( BYTE* wavedata, BYTE* initdata ) {
 // Configure GPIF Address pins, output initial value,
 // these instructions don't do anything on the
 // smaller chips (e.g., 56 pin model only has ports a,b,d)
-  PORTCCFG = 0xFF;    // [7:0] as alt. func. GPIFADR[7:0]
-  OEC = 0xFF;         // and as outputs
-  PORTECFG |= 0x80;   // [8] as alt. func. GPIFADR[8]
-  OEE |= 0x80;        // and as output
+ // PORTCCFG = 0xFF;    // [7:0] as alt. func. GPIFADR[7:0]
+ // OEC = 0xFF;         // and as outputs
+ // PORTECFG |= 0x80;   // [8] as alt. func. GPIFADR[8]
+ // OEE |= 0x80;        // and as output
  
 // ...OR... tri-state GPIFADR[8:0] pins
 //  PORTCCFG = 0x00;  // [7:0] as port I/O
@@ -172,7 +171,10 @@ void gpif_single_write16( WORD* dat, WORD len) {
 }
 
 void gpif_fifo_read ( GPIF_EP_NUM ep_num ) {
-    if ( !(GPIFTRIG & 0x80 ) ) return; // wait until things are finished, TRM READ TRANSACTION 1, poll GPIFTRIG.7 GPIF Done bit
+    while( !(GPIFTRIG & 0x80 ) ) // wait until things are finished, TRM READ TRANSACTION 1, poll GPIFTRIG.7 GPIF Done bit
+    {
+        ; //Do nothing
+    }
     //poll GPIFTRIG.7 GPIF Done bit
     GPIFTRIG = GPIFTRGRD | ep_num; // The waveform is started by writing to EPxGPIFTRIG, or to GPIFTRIG
                                     // R/W=1, EP[1:0]=FIFO_EpNum

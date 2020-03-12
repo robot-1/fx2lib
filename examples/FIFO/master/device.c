@@ -21,7 +21,7 @@
 #include <serial.h>
 #include <delay.h>
 #include <autovector.h>
-#include <lights.h>
+//#include <lights.h>
 #include <setupdat.h>
 #include <fx2sdly.h>
 #include <eputils.h>
@@ -123,80 +123,136 @@ BOOL handle_vendorcommand(BYTE cmd) {
 }
 
 const static void initialize(void){
-    // 48 MHZ, CLKOUT enabled
-    CPUCS = bmCLKSPD1;
+     // set the CPU clock to 48MHz
+  //CPUCS = ((CPUCS & ~bmCLKSPD) | bmCLKSPD1);
+  CPUCS = 0x08;                 // CLKSPD[1:0]=10, for 48MHz operation
+  SYNCDELAY;                    // CLKOE=0, don't drive CLKOUT
+  IFCONFIG = 0b10001010;
+  SYNCDELAY;
+
+  REVCTL = 0x03;
+  SYNCDELAY;
+  EP2CFG = 0b10100010;//bmVALID | bmTYPE1 | bmBUF1;
+  SYNCDELAY;           
+  EP6CFG = 0b11100010;     // EP6IN, bulk, size 512, 2x buffered
+  SYNCDELAY;
+  EP4CFG = 0x00;     // EP4 not valid
+  SYNCDELAY;               
+  EP8CFG = 0x00;     // EP8 not valid
+  SYNCDELAY;
+
+
+
+
+//   EP6GPIFFLGSEL = 0x01; // For EP6IN, GPIF uses EF flag
+//   SYNCDELAY;
+
+  FIFORESET = 0x80;  // set NAKALL bit to NAK all transfers from host
+  SYNCDELAY;
+  FIFORESET = 0x02;  // reset EP2 FIFO
+  SYNCDELAY;
+  FIFORESET = 0x06;  // reset EP6 FIFO
+  SYNCDELAY;
+  FIFORESET = 0x04;  // reset EP6 FIFO
+  SYNCDELAY;
+  FIFORESET = 0x08;  // clear NAKALL bit to resume normal operation
+  SYNCDELAY;
+  FIFORESET = 0x00;  // clear NAKALL bit to resume normal operation
+  SYNCDELAY;
+
+//   INPKTEND = 0x86;
+//   SYNCDELAY;
+//   INPKTEND = 0x86;
+//   SYNCDELAY;
+
+   // EP6BCL = 0x80;   // arm EP2OUT by writing byte count w/skip. (E691)
+   // SYNCDELAY;
+   // EP6BCL = 0x80;
+   // SYNCDELAY;
+  OUTPKTEND = 0x82; // SKIP OUT data
+  SYNCDELAY;
+  OUTPKTEND = 0x82; // SKIP OUT data
+  REVCTL = 0x00;
+  EP2FIFOCFG = 0x00; 
+  SYNCDELAY;
+  EP6FIFOCFG = 0x08; 
+  SYNCDELAY;  
+  EP4FIFOCFG = 0x00; 
+  SYNCDELAY;
+  EP8FIFOCFG = 0x00;
+  SYNCDELAY;
+    
+}
+
+static void
+send_state(__xdata const unsigned char *msg,unsigned int data_len){
+    __xdata unsigned char *dest = EP6FIFOBUF;
+    
+   const char *mss = "hello";
+   unsigned int len = 0;
+   *dest++ = 0x68;
+   ++len;
+    while(*mss > 0){
+        *dest++ = *mss++;
+        ++len;
+    }
+
+    EP6BCH= len & 0xFF00;
     SYNCDELAY;
-    // Internal IFCLK @ 48MHz, IFCLK out,GPIF MASTER
-    IFCONFIG = bmIFCLKSRC | bm3048MHZ | bmIFCLKOE | bmIFCFG1;
-    SYNCDELAY;
-    // Disable auto-arm + Enhanced packet handling
-    REVCTL = bmNOAUTOARM | bmSKIPCOMMIT;
-    SYNCDELAY;
-    // bulk IN, 512 bytes, double-buffered 0xE2
-    EP6CFG = bmVALID | bmDIR | bmTYPE1 | bmBUF1;
-    SYNCDELAY;
-    // bulk OUT, 512 bytes, double-buffered 0xA2
-    EP2CFG =  bmVALID | bmTYPE1 | bmBUF1;
-    SYNCDELAY;
-    // NAK all requests from host. 0x80
-    FIFORESET = bmNAKALL;
-    SYNCDELAY;
-    // Reset EP 2 0x82
-    FIFORESET = bmBIT7 | bmBIT1;
-    SYNCDELAY;
-    // Reset EP 4..
-    FIFORESET = 0x84;
-    SYNCDELAY;
-    FIFORESET = 0x86;
-    SYNCDELAY;
-    FIFORESET = 0x88;
-    SYNCDELAY;
-    // Back to normal..
-    FIFORESET = 0x00;
-    SYNCDELAY;
-    // Disable AUTOOUT
-    EP2FIFOCFG = 0x00;
-    SYNCDELAY;
-    // Clear the 1st buffer
-    OUTPKTEND = 0x82;
-    SYNCDELAY;
-    // ..both of them
-    OUTPKTEND = 0x82;
-    SYNCDELAY;
-    INPKTEND = 0x86;
-    SYNCDELAY;
-    INPKTEND = 0x86;
-    SYNCDELAY;
-    // manual IN, 8 bit data bmAUTOIN
-    EP6FIFOCFG = 0x00;
-    SYNCDELAY;
+    EP6BCL= len & 0x00FF;
 
 }
+
+
+static void
+accept_cmd(void){
+    __xdata const unsigned char *src = EP2FIFOBUF;
+    unsigned len = ((unsigned)EP2BCH)<<8 | EP2BCL;
+
+    if (len<1) return;
+
+    if (!(EP6CS & bmEPFULL)) send_state(src,len);
+
+    FIFORESET = 0x80;
+    SYNCDELAY;
+    FIFORESET = 0x02;
+    SYNCDELAY;
+    FIFORESET = 0x00;
+    SYNCDELAY;
+    OUTPKTEND = 0x82; // SKIP OUT data
+    SYNCDELAY;
+    OUTPKTEND = 0x82; // SKIP OUT data
+    SYNCDELAY;
+}
+
 //********************  INIT ***********************
+static BYTE g_data = 0x00;
+BYTE __xdata mydata;
+unsigned char state = 0;
 
+WORD len = sizeof(g_data);
 void main_init() {
-
 const char __xdata WaveData[128] =
-{
-// Wave 0
+{ 
+// Wave 0 
 /* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
 /* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
-/* Output*/ 0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,
+/* Output*/ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,
 /* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
-// Wave 1
+// Wave 1 
 /* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
 /* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
-/* Output*/ 0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,
+/* Output*/ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,
 /* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
-// Wave 2
-/* LenBr */ 0x02,     0x01,     0x93,     0x01,     0xBA,     0x01,     0x01,     0x07,
-/* Opcode*/ 0x00,     0x00,     0x01,     0x02,     0x01,     0x00,     0x00,     0x00,
-/* Output*/ 0x07,     0x07,     0x04,     0x04,     0x07,     0x07,     0x07,     0x07,
+// Wave 2 
+/* LenBr */ 0x02,     0x05,     0x9A,     0x14,     0x01,     0x17,     0x01,     0x07,
+/* Opcode*/ 0x00,     0x00,     0x01,     0x00,     0x02,     0x01,     0x00,     0x00,
+/* Output*/ 0x01,     0x01,     0x01,     0x00,     0x00,     0x01,     0x01,     0x01,
 /* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
-//
-/* LenBr */ 0x01,     0x01,     0x01,     0x9B,     0x01,     0x01,     0x01,     0x07,
-/* Opcode*/ 0x00,     0x00,     0x00,     0x01,     0x00,     0x00,     0x00,     0x00,
-/* Output*/ 0x05,     0x06,     0x07,     0x07,     0x07,     0x07,     0x07,     0x07,
+// Wave 3 
+/* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
+/* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
+/* Output*/ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,
 /* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
 };
 const char __xdata FlowStates[36] =
@@ -208,27 +264,36 @@ const char __xdata FlowStates[36] =
 };
 const char __xdata InitData[7] =
 {
-/* Regs  */ 0xE0,0x10,0x00,0x07,0xFE,0x4E,0x00
+/* Regs  */ 0xE0,0x10,0x00,0x01,0x8A,0x4E,0x00
 };
+
+
+
  OEA = 0x01;
- PA0 = 0;
+ IOA = 0x00;
+ // SEnder CLK 416ns
+ // master 33ns
  initialize();
  gpif_init(WaveData,InitData);
- gpif_setflowstate(FlowStates,0); // bank 0
- gpif_set_tc16(4);
- printf ( "Initialization Done.\n" );
 
 }
 
 void main_loop() {
-// do some work
-gpif_fifo_read(GPIF_EP6); // data to EP6
+   if(GPIFREADYSTAT & 0x01){
+      if (!(EP6CS & bmEPFULL)){
+               gpif_set_tc16(512);   
+               gpif_fifo_read(GPIF_EP6);
+               while(!(GPIFTRIG & 0x80 ));
+               IOA = 0x01;
+               GPIFTCB0=01;  
+               SYNCDELAY;  
+               GPIFTCB1=00;  
+               SYNCDELAY;  
+               GPIFTCB2=00;  
+               SYNCDELAY;  
+               GPIFTCB3=00;  
+               SYNCDELAY;
+      }
 
-// unsigned len = ((unsigned)EP6BCH) << 8 | EP6BCL;
-
-// if(len < 1) return;
-if(!(EP6CS & bmEPFULL)) return;
-PA0 = 1;
+   }
 }
-
-

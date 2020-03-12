@@ -124,48 +124,63 @@ BOOL handle_vendorcommand(BYTE cmd) {
 
 const static void initialize(void){
     // 48 MHZ, CLKOUT disabled
+    // SYNCDELAY;
     CPUCS = bmCLKSPD1;
     SYNCDELAY;
     // External IFCLK @ 48MHz, SLAVE FIFO, Synchronous
-    IFCONFIG = bm3048MHZ | bmIFCFGMASK;
+    IFCONFIG = 0b11001011;
     SYNCDELAY;
     // Disable auto-arm + Enhanced packet handling
-    REVCTL = bmNOAUTOARM | bmSKIPCOMMIT;
+    REVCTL = 0x03;
     SYNCDELAY;
-    // bulk IN, 512 bytes, double-buffered
-    EP6CFG = bmVALID | bmDIR | bmTYPE1 | bmBUF1;
-    SYNCDELAY;
+
     // bulk OUT, 512 bytes, double-buffered
-    EP2CFG = bmVALID | bmTYPE1 | bmBUF1;
+    EP2CFG = 0b10100010;//bmVALID | bmTYPE1 | bmBUF1;
     SYNCDELAY;
-    PINFLAGSAB = 1 << 3 | 7 << 1;
+    EP6CFG = 0b11100010; 
     SYNCDELAY;
-    // NAK all requests from host.
-    FIFORESET = bmNAKALL;
+    // EP4 and EP8 are not used in this implementation...
+    EP4CFG &= 0x7F;                // clear valid bit
+    SYNCDELAY;                    // 
+    EP8CFG &= 0x7F;                // clear valid bit
     SYNCDELAY;
-    // Reset EP 2
+
+    OUTPKTEND = 0x82;
+    SYNCDELAY;
+    OUTPKTEND = 0x82;
+    SYNCDELAY;
+
+    REVCTL = 0x00; // autoarm , no enhance handling
+    SYNCDELAY;
+    EP2FIFOCFG = 0x00;
+    SYNCDELAY;
+    EP2FIFOCFG = bmAUTOOUT; // Turn on Zero length IN, 8bit FIFO, AUTOOUT
+    SYNCDELAY;
+    EP4FIFOCFG &= ~(1<<0);
+    SYNCDELAY;
+    EP8FIFOCFG &= ~(1<<0);
+    SYNCDELAY;
+    PINFLAGSAB = 0b00001000;//1 << 3;
+
+    FIFORESET = 0x80;//bmNAKALL;
+    SYNCDELAY;
     FIFORESET = 0x82;
     SYNCDELAY;
-    // Reset EP 4..
     FIFORESET = 0x84;
     SYNCDELAY;
     FIFORESET = 0x86;
     SYNCDELAY;
     FIFORESET = 0x88;
     SYNCDELAY;
-    // Back to normal..
     FIFORESET = 0x00;
     SYNCDELAY;
-    // Clear the 1st buffer
-    OUTPKTEND = 0x82;
-    SYNCDELAY;
-    // ..both of them
-    OUTPKTEND = 0x82;
-    SYNCDELAY;
-    //REVCTL = 0x00;
-    //SYNCDELAY;
-    //EP2FIFOCFG = bmAUTOOUT;
-    //SYNCDELAY;
+
+    // // FIFOPINPOLAR = 0x02;
+    // EP2BCL = 0x80;   // arm EP2OUT by writing byte count w/skip. (E691)
+    // SYNCDELAY;
+    // EP2BCL = 0x80;
+    // SYNCDELAY;
+
 }
 
 static void
@@ -207,23 +222,17 @@ accept_cmd(void){
 //********************  INIT ***********************
 
 void main_init() {
- OEA = 0x01;
+//  OEA |= 0x01;
+//  IOA |= 0x00;
+
  initialize();
- PA0 = 1;
+//  PORTACFG |= 1 << 6;
  printf ( "Initialization Done.\n" );
 
 }
 
 void main_loop() {
 
- if (!(EP2CS & bmEPEMPTY)){
-      OUTPKTEND = 0x02;
-      SYNCDELAY;
-      OUTPKTEND = 0x02;
-      SYNCDELAY;
 
-   PA0 ^= 1;
-   //accept_cmd();
- }
 
 }

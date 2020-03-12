@@ -46,19 +46,19 @@
 //          _________ _________ _________ _________ _________ _________ _________ _________
 //                                                                                         
 // AddrMode Same Val  Same Val  Same Val  Same Val  Same Val  Same Val  Same Val           
-// DataMode NO Data   NO Data   NO Data   NO Data   NO Data   NO Data   NO Data            
+// DataMode NO Data   NO Data   Activate  Activate  Activate  Activate  Activate           
 // NextData SameData  SameData  SameData  SameData  SameData  SameData  SameData           
 // Int Trig No Int    No Int    No Int    No Int    No Int    No Int    No Int             
-// IF/Wait  Wait 1    Wait 1    Wait 1    Wait 1    Wait 1    Wait 1    Wait 1             
-//   Term A                                                                                
-//   LFunc                                                                                 
-//   Term B                                                                                
-// Branch1                                                                                 
-// Branch0                                                                                 
-// Re-Exec                                                                                 
+// IF/Wait  Wait 1    IF        Wait 1    Wait 1    Wait 1    Wait 1    Wait 1             
+//   Term A           EF#                                                                  
+//   LFunc            AND                                                                  
+//   Term B           EF#                                                                  
+// Branch1            Then 3                                                               
+// Branch0            Else 2                                                               
+// Re-Exec            Yes                                                                  
 // Sngl/CRC Default   Default   Default   Default   Default   Default   Default            
-// SLRD         1         1         1         1         1         1         1         1    
-// SLOE         0         0         0         0         0         0         0         0    
+// SLRD         1         1         0         0         0         0         0         1    
+// SLOE         1         1         0         0         0         0         0         1    
 // OE#          0         0         0         0         0         0         0         0    
 // CTL3         0         0         0         0         0         0         0         0    
 // CTL4         0         0         0         0         0         0         0         0    
@@ -85,7 +85,7 @@
 // Re-Exec                                                                                 
 // Sngl/CRC Default   Default   Default   Default   Default   Default   Default            
 // SLRD         1         1         1         1         1         1         1         1    
-// SLOE         0         0         0         0         0         0         0         0    
+// SLOE         1         1         1         1         1         1         1         1    
 // OE#          0         0         0         0         0         0         0         0    
 // CTL3         0         0         0         0         0         0         0         0    
 // CTL4         0         0         0         0         0         0         0         0    
@@ -100,19 +100,19 @@
 //          _________ _________ _________ _________ _________ _________ _________ _________
 //                                                                                         
 // AddrMode Same Val  Same Val  Same Val  Same Val  Same Val  Same Val  Same Val           
-// DataMode NO Data   NO Data   NO Data   NO Data   Activate  NO Data   NO Data            
+// DataMode NO Data   NO Data   NO Data   NO Data   NO Data   NO Data   NO Data            
 // NextData SameData  SameData  SameData  SameData  SameData  SameData  SameData           
 // Int Trig No Int    No Int    No Int    No Int    No Int    No Int    No Int             
-// IF/Wait  Wait 2    Wait 5    IF        Wait 20   Wait 1    IF        Wait 1             
-//   Term A                     EF#                           EF#                          
-//   LFunc                      AND                           AND                          
-//   Term B                     EF#                           EF#                          
-// Branch1                      Then 3                        Then 2                       
-// Branch0                      Else 2                        ElseIdle                     
-// Re-Exec                      Yes                           No                           
+// IF/Wait  Wait 2    Wait 1    Wait 1    Wait 1    Wait 1    Wait 1    Wait 1             
+//   Term A                                                                                
+//   LFunc                                                                                 
+//   Term B                                                                                
+// Branch1                                                                                 
+// Branch0                                                                                 
+// Re-Exec                                                                                 
 // Sngl/CRC Default   Default   Default   Default   Default   Default   Default            
-// SLRD         1         1         1         0         0         1         1         1    
-// SLOE         0         0         0         0         0         0         0         0    
+// SLRD         1         1         1         1         1         1         1         1    
+// SLOE         1         1         1         1         1         1         1         1    
 // OE#          0         0         0         0         0         0         0         0    
 // CTL3         0         0         0         0         0         0         0         0    
 // CTL4         0         0         0         0         0         0         0         0    
@@ -139,7 +139,7 @@
 // Re-Exec                                                                                 
 // Sngl/CRC Default   Default   Default   Default   Default   Default   Default            
 // SLRD         1         1         1         1         1         1         1         1    
-// SLOE         0         0         0         0         0         0         0         0    
+// SLOE         1         1         1         1         1         1         1         1    
 // OE#          0         0         0         0         0         0         0         0    
 // CTL3         0         0         0         0         0         0         0         0    
 // CTL4         0         0         0         0         0         0         0         0    
@@ -159,24 +159,24 @@
 const char xdata WaveData[128] =     
 {                                      
 // Wave 0 
-/* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
-/* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
-/* Output*/ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,
+/* LenBr */ 0x01,     0x9A,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
+/* Opcode*/ 0x00,     0x01,     0x02,     0x02,     0x02,     0x02,     0x02,     0x00,
+/* Output*/ 0x03,     0x03,     0x00,     0x00,     0x00,     0x00,     0x00,     0x03,
 /* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
 // Wave 1 
 /* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
 /* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
-/* Output*/ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,
+/* Output*/ 0x03,     0x03,     0x03,     0x03,     0x03,     0x03,     0x03,     0x03,
 /* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
 // Wave 2 
-/* LenBr */ 0x02,     0x05,     0x9A,     0x14,     0x01,     0x17,     0x01,     0x07,
-/* Opcode*/ 0x00,     0x00,     0x01,     0x00,     0x02,     0x01,     0x00,     0x00,
-/* Output*/ 0x01,     0x01,     0x01,     0x00,     0x00,     0x01,     0x01,     0x01,
+/* LenBr */ 0x02,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
+/* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
+/* Output*/ 0x03,     0x03,     0x03,     0x03,     0x03,     0x03,     0x03,     0x03,
 /* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
 // Wave 3 
 /* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
 /* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
-/* Output*/ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,
+/* Output*/ 0x03,     0x03,     0x03,     0x03,     0x03,     0x03,     0x03,     0x03,
 /* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
 };                     
 // END DO NOT EDIT     
@@ -194,7 +194,7 @@ const char xdata FlowStates[36] =
 // DO NOT EDIT ...                                               
 const char xdata InitData[7] =                                   
 {                                                                
-/* Regs  */ 0xE0,0x10,0x00,0x01,0x8A,0x4E,0x00     
+/* Regs  */ 0xE0,0x10,0x00,0x03,0xEA,0x4E,0x00     
 };                                                               
 // END DO NOT EDIT                                               
                                                                  
@@ -224,7 +224,7 @@ void GpifInit( void )
   // 8051 doesn't have access to waveform memories 'til
   // the part is in GPIF mode.
  
-  IFCONFIG = 0x8A;
+  IFCONFIG = 0xEA;
   // IFCLKSRC=1   , FIFOs executes on internal clk source
   // xMHz=1       , 48MHz internal clk rate
   // IFCLKOE=0    , Don't drive IFCLK pin signal at 48MHz

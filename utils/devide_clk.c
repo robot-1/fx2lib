@@ -8,15 +8,15 @@
 // CTL Out Tristate-able Binary       
 // SingleWrite WF Select     1     
 // SingleRead WF Select      0     
-// FifoWrite WF Select       3     
+// FifoWrite WF Select       0     
 // FifoRead WF Select        2     
 // Data Bus Idle Drive   Tristate     
 // END DO NOT EDIT                  
                                     
 // DO NOT EDIT ...       
 // GPIF Wave Names       
-// Wave 0   = Single R     
-// Wave 1   = Divider      
+// Wave 0   = unused       
+// Wave 1   = unused       
 // Wave 2   = FIFORd       
 // Wave 3   = FIFOWr       
                          
@@ -40,7 +40,7 @@
 // END DO NOT EDIT         
 // DO NOT EDIT ...                                                                         
 //                                                                                         
-// GPIF Waveform 0: Single R                                                                
+// GPIF Waveform 0: unused                                                                  
 //                                                                                         
 // Interval     0         1         2         3         4         5         6     Idle (7) 
 //          _________ _________ _________ _________ _________ _________ _________ _________
@@ -67,7 +67,7 @@
 // END DO NOT EDIT     
 // DO NOT EDIT ...                                                                         
 //                                                                                         
-// GPIF Waveform 1: Divider                                                                 
+// GPIF Waveform 1: unused                                                                  
 //                                                                                         
 // Interval     0         1         2         3         4         5         6     Idle (7) 
 //          _________ _________ _________ _________ _________ _________ _________ _________
@@ -100,19 +100,19 @@
 //          _________ _________ _________ _________ _________ _________ _________ _________
 //                                                                                         
 // AddrMode Same Val  Same Val  Same Val  Same Val  Same Val  Same Val  Same Val           
-// DataMode NO Data   NO Data   NO Data   NO Data   Activate  NO Data   NO Data            
+// DataMode NO Data   NO Data   NO Data   NO Data   NO Data   NO Data   NO Data            
 // NextData SameData  SameData  SameData  SameData  SameData  SameData  SameData           
 // Int Trig No Int    No Int    No Int    No Int    No Int    No Int    No Int             
-// IF/Wait  Wait 2    Wait 5    IF        Wait 20   Wait 1    IF        Wait 1             
-//   Term A                     EF#                           EF#                          
-//   LFunc                      AND                           AND                          
-//   Term B                     EF#                           EF#                          
-// Branch1                      Then 3                        Then 2                       
-// Branch0                      Else 2                        ElseIdle                     
-// Re-Exec                      Yes                           No                           
+// IF/Wait  Wait 1    Wait 1    Wait 1    IF        Wait 1    Wait 1    Wait 1             
+//   Term A                               FIFOFlag                                         
+//   LFunc                                AND                                              
+//   Term B                               FIFOFlag                                         
+// Branch1                                Then 0                                           
+// Branch0                                Else 0                                           
+// Re-Exec                                Yes                                              
 // Sngl/CRC Default   Default   Default   Default   Default   Default   Default            
-// SLRD         1         1         1         0         0         1         1         1    
-// SLOE         0         0         0         0         0         0         0         0    
+// SLRD         0         1         0         1         1         1         1         1    
+// SLOE         0         0         1         1         1         1         1         0    
 // OE#          0         0         0         0         0         0         0         0    
 // CTL3         0         0         0         0         0         0         0         0    
 // CTL4         0         0         0         0         0         0         0         0    
@@ -169,10 +169,10 @@ const char xdata WaveData[128] =
 /* Output*/ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,
 /* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
 // Wave 2 
-/* LenBr */ 0x02,     0x05,     0x9A,     0x14,     0x01,     0x17,     0x01,     0x07,
-/* Opcode*/ 0x00,     0x00,     0x01,     0x00,     0x02,     0x01,     0x00,     0x00,
-/* Output*/ 0x01,     0x01,     0x01,     0x00,     0x00,     0x01,     0x01,     0x01,
-/* LFun  */ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
+/* LenBr */ 0x01,     0x01,     0x01,     0x80,     0x01,     0x01,     0x01,     0x07,
+/* Opcode*/ 0x00,     0x00,     0x00,     0x01,     0x00,     0x00,     0x00,     0x00,
+/* Output*/ 0x00,     0x01,     0x02,     0x03,     0x03,     0x03,     0x03,     0x01,
+/* LFun  */ 0x00,     0x00,     0x00,     0x36,     0x00,     0x00,     0x00,     0x3F,
 // Wave 3 
 /* LenBr */ 0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
 /* Opcode*/ 0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,
@@ -194,7 +194,7 @@ const char xdata FlowStates[36] =
 // DO NOT EDIT ...                                               
 const char xdata InitData[7] =                                   
 {                                                                
-/* Regs  */ 0xE0,0x10,0x00,0x01,0x8A,0x4E,0x00     
+/* Regs  */ 0xE0,0x10,0x00,0x01,0xEE,0x42,0x00     
 };                                                               
 // END DO NOT EDIT                                               
                                                                  
@@ -224,7 +224,7 @@ void GpifInit( void )
   // 8051 doesn't have access to waveform memories 'til
   // the part is in GPIF mode.
  
-  IFCONFIG = 0x8A;
+  IFCONFIG = 0xEE;
   // IFCLKSRC=1   , FIFOs executes on internal clk source
   // xMHz=1       , 48MHz internal clk rate
   // IFCLKOE=0    , Don't drive IFCLK pin signal at 48MHz
