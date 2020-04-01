@@ -21,6 +21,9 @@ SOURCES=fw.c device.c
 A51_SOURCES=dscr.a51
 BASENAME=firmware
 
-
+VID?=0x04b4
+PID?=0x8613 #this is the pid for slave
+#values must be same with vid and pid but not in hex
+FX2_VID?=04b4
+FX2_PID?=8613
 include ../../../lib/fx2.mk
-

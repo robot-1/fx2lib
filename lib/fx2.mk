@@ -37,8 +37,8 @@
 
 AS8051?=sdas8051
 
-VID?=0x04b4
-PID?=0x8613
+#VID?=0x04b4
+#PID?=0x8613
 
 INCLUDES?=""
 DSCR_AREA?=-Wl"-b DSCR_AREA=0x3e00"
@@ -95,7 +95,7 @@ $(BUILDDIR)/$(BASENAME).iic: $(BUILDDIR)/$(BASENAME).ihx
 	$(FX2LIBDIR)/utils/ihx2iic.py -v $(VID) -p $(PID) $< $@
 
 load: $(BUILDDIR)/$(BASENAME).bix
-	fx2load -v $(VID) -p $(PID) $(BUILDDIR)/$(BASENAME).bix
+	fx2tool -d $(FX2_VID):$(FX2_PID) -F bin -B write_eeprom -f $(BUILDDIR)/$(BASENAME).iic
 
 clean:
 	rm -f $(foreach ext, a51 asm ihx lnk lk lst map mem rel rst rest sym adb cdb bix, $(BUILDDIR)/*.${ext})

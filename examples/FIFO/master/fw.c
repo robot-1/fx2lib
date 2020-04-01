@@ -101,10 +101,6 @@ Some chips have built in external memory (__xdata) which should not be confused 
 
 
 
-
-
-
-
  main_init();
 
  // set up interrupts.

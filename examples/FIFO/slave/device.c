@@ -128,41 +128,24 @@ const static void initialize(void){
     CPUCS = bmCLKSPD1;
     SYNCDELAY;
     // External IFCLK @ 48MHz, SLAVE FIFO, Synchronous
-    IFCONFIG = 0b11001011;
+    IFCONFIG =  bm3048MHZ | bmIFCFG1 | bmIFCFG0 ;
     SYNCDELAY;
     // Disable auto-arm + Enhanced packet handling
     REVCTL = 0x03;
     SYNCDELAY;
 
     // bulk OUT, 512 bytes, double-buffered
-    EP2CFG = 0b10100010;//bmVALID | bmTYPE1 | bmBUF1;
+    EP2CFG = bmVALID | bmTYPE1 | bmBUF1;
     SYNCDELAY;
-    EP6CFG = 0b11100010; 
+    EP6CFG = bmVALID | bmDIR | bmTYPE1 | bmBUF1; 
     SYNCDELAY;
-    // EP4 and EP8 are not used in this implementation...
     EP4CFG &= 0x7F;                // clear valid bit
-    SYNCDELAY;                    // 
+    SYNCDELAY;                    
     EP8CFG &= 0x7F;                // clear valid bit
     SYNCDELAY;
-
-    OUTPKTEND = 0x82;
-    SYNCDELAY;
-    OUTPKTEND = 0x82;
-    SYNCDELAY;
-
-    REVCTL = 0x00; // autoarm , no enhance handling
-    SYNCDELAY;
-    EP2FIFOCFG = 0x00;
-    SYNCDELAY;
-    EP2FIFOCFG = bmAUTOOUT; // Turn on Zero length IN, 8bit FIFO, AUTOOUT
-    SYNCDELAY;
-    EP4FIFOCFG &= ~(1<<0);
-    SYNCDELAY;
-    EP8FIFOCFG &= ~(1<<0);
-    SYNCDELAY;
-    PINFLAGSAB = 0b00001000;//1 << 3;
-
     FIFORESET = 0x80;//bmNAKALL;
+    SYNCDELAY;
+    FIFORESET = 0x82;
     SYNCDELAY;
     FIFORESET = 0x82;
     SYNCDELAY;
@@ -175,7 +158,27 @@ const static void initialize(void){
     FIFORESET = 0x00;
     SYNCDELAY;
 
-    // // FIFOPINPOLAR = 0x02;
+    PINFLAGSAB = 0x08;//1 << 3;
+    SYNCDELAY;
+
+    REVCTL = 0x00;
+    SYNCDELAY;
+
+//    OUTPKTEND = 0x82;
+//    SYNCDELAY;
+//    OUTPKTEND = 0x82;
+//    SYNCDELAY;
+    EP2FIFOCFG = 0x00;
+    SYNCDELAY;
+    EP2FIFOCFG = bmAUTOOUT;
+    SYNCDELAY;
+    EP4FIFOCFG &= 0xFE;
+    SYNCDELAY;
+    EP6FIFOCFG &= 0xFE;
+    SYNCDELAY;
+    EP8FIFOCFG &= 0xFE;
+    SYNCDELAY;
+  // // FIFOPINPOLAR = 0x02;
     // EP2BCL = 0x80;   // arm EP2OUT by writing byte count w/skip. (E691)
     // SYNCDELAY;
     // EP2BCL = 0x80;
@@ -222,13 +225,14 @@ accept_cmd(void){
 //********************  INIT ***********************
 
 void main_init() {
-//  OEA |= 0x01;
-//  IOA |= 0x00;
-
+  OED = 0xFF;
  initialize();
 //  PORTACFG |= 1 << 6;
  printf ( "Initialization Done.\n" );
-
+ NOP;
+ NOP;
+ NOP;
+  IOD = 0x01;
 }
 
 void main_loop() {

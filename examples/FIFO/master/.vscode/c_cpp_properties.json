@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cppStandard": "c++17",
+            "includePath": [
+                "../../../include"
+            ],
+            "cStandard": "c99"
+        }
+    ],
+    "version": 4
+}
